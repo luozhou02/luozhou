@@ -14,10 +14,14 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Luo Zhou",
+  title: "Luozhou Photography",
   description: "Photography Portfolio by Luozhou",
   icons: {
-    icon: '/favicon.ico', // 或 '/favicon.png'，取决于你的图标文件格式
+    icon: [
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.ico' }
+    ],
+    apple: { url: '/apple-icon.png' },
   },
 };
 
