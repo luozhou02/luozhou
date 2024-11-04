@@ -147,7 +147,7 @@ export default function Home() {
           ${isMobile ? 'bottom-8 w-3 h-3 menu-button-mobile' : 'bottom-8 w-2.5 h-2.5'}`}
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
-        <span className="absolute inset-0 rounded-full bg-black opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <span className="absolute inset-0 rounded-full bg-black opacity-100 transition-opacity duration-300" />
       </button>
 
       {/* 菜单内容 */}
