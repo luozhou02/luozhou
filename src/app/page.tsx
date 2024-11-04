@@ -1,10 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, TouchEvent } from 'react';
 import Image from 'next/image';
 
 export default function Home() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
 
   const images = [
     '/image/1 (1).jpg',
@@ -22,6 +24,44 @@ export default function Home() {
     '/image/1 (13).jpg'
   ];
 
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 初始预加载
+  useEffect(() => {
+    const preloadInitialImages = async () => {
+      const imagesToPreload = images.slice(0, 10);
+      await Promise.all(
+        imagesToPreload.map((src) => {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = resolve;
+            img.onerror = reject;
+          });
+        })
+      );
+    };
+
+    preloadInitialImages();
+  }, []);
+
+  const getPreloadIndexes = (currentIndex: number, totalImages: number) => {
+    const indexes = [];
+    for (let i = -5; i <= 5; i++) {
+      if (i === 0) continue;
+      const index = (currentIndex + i + totalImages) % totalImages;
+      indexes.push(index);
+    }
+    return indexes;
+  };
+
   const handleImageChange = (direction: 'left' | 'right') => {
     const newIndex = direction === 'left'
       ? (currentImageIndex - 1 + images.length) % images.length
@@ -29,10 +69,27 @@ export default function Home() {
     setCurrentImageIndex(newIndex);
   };
 
+  const handleTouchStart = (e: TouchEvent) => {
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = touchStart - touchEnd;
+
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        handleImageChange('right');
+      } else {
+        handleImageChange('left');
+      }
+    }
+  };
+
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-white">
-      {/* 左右点击区域 */}
-      {!isMenuOpen && (
+      {/* 左右点击区域 - 仅在桌面端显示 */}
+      {!isMenuOpen && !isMobile && (
         <div className="fixed inset-0 flex z-10">
           <div 
             className="w-1/2 h-full hover:cursor-left-arrow cursor-none"
@@ -46,44 +103,48 @@ export default function Home() {
       )}
 
       {/* 主图片区域 */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div 
+        className="absolute inset-0 flex items-center justify-center"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div 
-          className={`relative w-[80vw] h-[80vh]
+          className={`relative ${isMobile ? 'w-screen h-screen p-4' : 'w-[80vw] h-[80vh]'}
           ${isMenuOpen ? 'blur-md scale-105' : ''}`}
         >
           <Image
             src={images[currentImageIndex]}
             alt="Portfolio image"
             fill
-            sizes="80vw"
+            sizes={isMobile ? "100vw" : "80vw"}
             priority
-            style={{ objectFit: 'contain' }}
+            style={{ 
+              objectFit: 'contain',
+              padding: isMobile ? '1rem' : '0'
+            }}
           />
         </div>
 
-        {/* 预加载下一张图片 */}
+        {/* 预加载图片 */}
         <div className="hidden">
-          <Image
-            src={images[(currentImageIndex + 1) % images.length]}
-            alt="Next image"
-            width={1}
-            height={1}
-            priority
-          />
-          <Image
-            src={images[(currentImageIndex - 1 + images.length) % images.length]}
-            alt="Previous image"
-            width={1}
-            height={1}
-            priority
-          />
+          {getPreloadIndexes(currentImageIndex, images.length).map((index) => (
+            <Image
+              key={index}
+              src={images[index]}
+              alt={`Preload image ${index}`}
+              width={1}
+              height={1}
+              priority
+            />
+          ))}
         </div>
       </div>
 
       {/* 菜单按钮 */}
       <button
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full 
-          border border-black group transition-all duration-300 z-20"
+        className={`absolute left-1/2 -translate-x-1/2 rounded-full 
+          border border-black group transition-all duration-300 z-20
+          ${isMobile ? 'bottom-8 w-2 h-2' : 'bottom-8 w-2.5 h-2.5'}`}
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
         <span className="absolute inset-0 rounded-full bg-black opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -99,7 +160,7 @@ export default function Home() {
           }
         }}
       >
-        <div className="text-black text-center space-y-8">
+        <div className={`text-black text-center ${isMobile ? 'px-4' : ''} space-y-8`}>
           <div className="space-y-2">
             <p className="font-serif text-2xl tracking-wide">Photographer</p>
             <p className="font-serif text-xl font-light tracking-widest">Luozhou</p>

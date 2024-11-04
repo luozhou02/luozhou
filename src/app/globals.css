@@ -43,3 +43,31 @@ img {
   -webkit-user-select: none;
   -ms-user-select: none;
 }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  body {
+    overflow-y: hidden;
+    touch-action: none;
+    -webkit-overflow-scrolling: none;
+  }
+  
+  .mobile-image-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* 禁用默认的触摸行为 */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* 禁用双击缩放 */
+html {
+  touch-action: manipulation;
+}
