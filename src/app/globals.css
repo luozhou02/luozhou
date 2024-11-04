@@ -59,6 +59,13 @@ img {
     align-items: center;
     justify-content: center;
   }
+
+  /* 增强移动端菜单按钮的可点击区域 */
+  .menu-button-mobile {
+    padding: 12px;
+    margin: -12px;
+    background-clip: content-box;
+  }
 }
 
 /* 禁用默认的触摸行为 */

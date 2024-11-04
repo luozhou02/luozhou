@@ -144,7 +144,7 @@ export default function Home() {
       <button
         className={`absolute left-1/2 -translate-x-1/2 rounded-full 
           border border-black group transition-all duration-300 z-20
-          ${isMobile ? 'bottom-8 w-2 h-2' : 'bottom-8 w-2.5 h-2.5'}`}
+          ${isMobile ? 'bottom-8 w-3 h-3 menu-button-mobile' : 'bottom-8 w-2.5 h-2.5'}`}
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
         <span className="absolute inset-0 rounded-full bg-black opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
