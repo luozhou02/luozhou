@@ -36,14 +36,14 @@ export default function Home() {
   useEffect(() => {
     const preloadInitialImages = () => {
       const imagesToPreload = images.slice(0, 10);
-      imagesToPreload.forEach((src) => {
+      imagesToPreload.forEach((src: string) => {
         const img = new Image();
         img.src = src;
       });
     };
 
     preloadInitialImages();
-  }, []);
+  }, [images]);
 
   const getPreloadIndexes = (currentIndex: number, totalImages: number) => {
     const indexes = [];
@@ -58,19 +58,24 @@ export default function Home() {
   };
 
   const handleImageChange = (direction: 'left' | 'right') => {
-    const newIndex = direction === 'left'
-      ? (currentImageIndex - 1 + images.length) % images.length
-      : (currentImageIndex + 1) % images.length;
-    setCurrentImageIndex(newIndex);
+    const totalImages = images.length;
+    setCurrentImageIndex((prevIndex) => {
+      const newIndex = direction === 'left'
+        ? (prevIndex - 1 + totalImages) % totalImages
+        : (prevIndex + 1) % totalImages;
+      return newIndex;
+    });
   };
 
   const handleTouchStart = (e: TouchEvent) => {
     setTouchStart(e.touches[0].clientX);
   };
 
-  const handleTouchEnd = (e: TouchEvent) => {
-    const touchEnd = e.changedTouches[0].clientX;
-    const diff = touchStart - touchEnd;
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!touchStart) return;
+
+    const currentTouch = e.touches[0].clientX;
+    const diff = touchStart - currentTouch;
 
     if (Math.abs(diff) > 50) {
       if (diff > 0) {
@@ -78,60 +83,29 @@ export default function Home() {
       } else {
         handleImageChange('left');
       }
+      setTouchStart(0);
     }
   };
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-white">
-      {!isMenuOpen && !isMobile && (
-        <div className="fixed inset-0 flex z-10">
-          <div 
-            className="w-1/2 h-full hover:cursor-left-arrow cursor-none"
-            onClick={() => handleImageChange('left')}
-          />
-          <div 
-            className="w-1/2 h-full hover:cursor-right-arrow cursor-none"
-            onClick={() => handleImageChange('right')}
-          />
-        </div>
-      )}
-
-      <div 
-        className="absolute inset-0 flex items-center justify-center"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div 
-          className={`relative ${isMobile ? 'w-screen h-screen p-4' : 'w-[80vw] h-[80vh]'}
-          ${isMenuOpen ? 'blur-md scale-105' : ''}`}
-        >
-          <Image
-            src={images[currentImageIndex]}
-            alt="Portfolio image"
-            fill
-            sizes={isMobile ? "100vw" : "80vw"}
-            priority
-            style={{ 
-              objectFit: 'contain',
-              padding: isMobile ? '1rem' : '0'
-            }}
-          />
-        </div>
-
-        <div className="hidden">
-          {getPreloadIndexes(currentImageIndex, images.length).map((index) => (
-            <Image
-              key={`preload-${index}`}
-              src={images[index]}
-              alt={`Preload ${index}`}
-              width={1}
-              height={1}
-            />
-          ))}
-        </div>
+    <main 
+      className="relative min-h-screen bg-white"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+    >
+      <div className="relative w-full h-screen">
+        <Image
+          src={images[currentImageIndex]}
+          alt={`Image ${currentImageIndex + 1}`}
+          fill
+          priority
+          className="object-contain"
+        />
+        {getPreloadIndexes(currentImageIndex, images.length).map((index) => (
+          <link key={index} rel="preload" as="image" href={images[index]} />
+        ))}
       </div>
 
-      {/* 更新后的菜单按钮 */}
       <button
         className={`absolute left-1/2 -translate-x-1/2 bottom-8 rounded-full 
           border border-black group transition-all duration-300 z-20
