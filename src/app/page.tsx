@@ -33,20 +33,13 @@ export default function Home() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 初始预加载
   useEffect(() => {
-    const preloadInitialImages = async () => {
+    const preloadInitialImages = () => {
       const imagesToPreload = images.slice(0, 10);
-      await Promise.all(
-        imagesToPreload.map((src) => {
-          return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.src = src;
-            img.onload = resolve;
-            img.onerror = reject;
-          });
-        })
-      );
+      imagesToPreload.forEach((src) => {
+        const img = new Image();
+        img.src = src;
+      });
     };
 
     preloadInitialImages();
@@ -57,7 +50,9 @@ export default function Home() {
     for (let i = -5; i <= 5; i++) {
       if (i === 0) continue;
       const index = (currentIndex + i + totalImages) % totalImages;
-      indexes.push(index);
+      if (index >= 0 && index < totalImages) {
+        indexes.push(index);
+      }
     }
     return indexes;
   };
@@ -88,7 +83,6 @@ export default function Home() {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-white">
-      {/* 左右点击区域 - 仅在桌面端显示 */}
       {!isMenuOpen && !isMobile && (
         <div className="fixed inset-0 flex z-10">
           <div 
@@ -102,7 +96,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* 主图片区域 */}
       <div 
         className="absolute inset-0 flex items-center justify-center"
         onTouchStart={handleTouchStart}
@@ -125,32 +118,32 @@ export default function Home() {
           />
         </div>
 
-        {/* 预加载图片 */}
         <div className="hidden">
           {getPreloadIndexes(currentImageIndex, images.length).map((index) => (
             <Image
-              key={index}
+              key={`preload-${index}`}
               src={images[index]}
-              alt={`Preload image ${index}`}
+              alt={`Preload ${index}`}
               width={1}
               height={1}
-              priority
             />
           ))}
         </div>
       </div>
 
-      {/* 菜单按钮 */}
+      {/* 更新后的菜单按钮 */}
       <button
-        className={`absolute left-1/2 -translate-x-1/2 rounded-full 
+        className={`absolute left-1/2 -translate-x-1/2 bottom-8 rounded-full 
           border border-black group transition-all duration-300 z-20
-          ${isMobile ? 'bottom-8 w-3 h-3 menu-button-mobile' : 'bottom-8 w-2.5 h-2.5'}`}
+          ${isMobile ? 'w-4 h-4 shadow-sm' : 'w-2.5 h-2.5'}
+          hover:scale-110 active:scale-95`}
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
-        <span className="absolute inset-0 rounded-full bg-black opacity-100 transition-opacity duration-300" />
+        <span className={`absolute inset-0 rounded-full bg-black 
+          transition-opacity duration-300
+          ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`} />
       </button>
 
-      {/* 菜单内容 */}
       <div 
         className={`absolute inset-0 flex items-center justify-center bg-white/90
         transition-all duration-500 ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}

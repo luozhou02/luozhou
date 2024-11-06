@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Luozhou Photography",
+  title: "Luozhou",
   description: "Photography Portfolio by Luozhou",
   icons: {
     icon: [
