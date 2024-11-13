@@ -37,11 +37,11 @@ export default function Home() {
   useEffect(() => {
     const preloadImages = async () => {
       try {
-        const imagePromises = images.map((src) => {
-          return new Promise((resolve, reject) => {
-            const img = new Image();
+        const imagePromises = images.map((src: string) => {
+          return new Promise<void>((resolve, reject) => {
+            const img = new window.Image();
             img.src = src;
-            img.onload = resolve;
+            img.onload = () => resolve();
             img.onerror = reject;
           });
         });
@@ -54,7 +54,7 @@ export default function Home() {
     };
 
     preloadImages();
-  }, []);
+  }, [images]);
 
   const handleImageChange = (direction: 'left' | 'right') => {
     const newIndex = direction === 'left'
@@ -94,7 +94,7 @@ export default function Home() {
         alt={`Preload image ${index}`}
         width={1}
         height={1}
-        priority={index === 1} // 当前图片优先加载
+        priority={index === 1}
         className="hidden"
       />
     ));
@@ -174,13 +174,13 @@ export default function Home() {
       >
         <div className="text-black text-center space-y-6">
           <div className="space-y-1">
-            <p className="text-sm">Photographer</p>
+            <p className="text-sm">Visual Artist</p>
             <p className="text-sm font-light">Luozhou</p>
-            <p className="text-sm">Based in Guangzhou</p>
+            <p className="text-sm">Based in Guangzhou, China</p>
           </div>
           
           <div className="space-y-1">
-            <p className="text-sm">say hello</p>
+            <p className="text-sm">Contact</p>
             <a 
               href="mailto:luozhou519@gmail.com"
               className="text-sm inline-block hover:underline"
@@ -190,7 +190,7 @@ export default function Home() {
           </div>
           
           <div className="space-y-1">
-            <p className="text-sm">Social media</p>
+            <p className="text-sm">Social Media</p>
             <div className="flex justify-center items-center gap-6">
               <a 
                 href="https://www.instagram.com/luozhou02" 
