@@ -5,8 +5,17 @@ import Image from 'next/image';
 export default function Home() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [touchStart, setTouchStart] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  // 检测是否为移动设备
+  useEffect(() => {
+    setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const images = [
     '/image/1 (1).jpg',
@@ -24,40 +33,28 @@ export default function Home() {
     '/image/1 (13).jpg'
   ];
 
+  // 预加载所有图片
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    const preloadImages = async () => {
+      try {
+        const imagePromises = images.map((src) => {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = resolve;
+            img.onerror = reject;
+          });
+        });
 
-  // 修改后的预加载函数
-  useEffect(() => {
-    const preloadInitialImages = () => {
-      const imagesToPreload = images.slice(0, 10);
-      imagesToPreload.forEach((src) => {
-        const img = new Image();
-        img.src = src;
-      });
-    };
-
-    preloadInitialImages();
-  }, []);
-
-  // 修改后的预加载索引函数
-  const getPreloadIndexes = (currentIndex: number, totalImages: number) => {
-    const indexes = [];
-    for (let i = -5; i <= 5; i++) {
-      if (i === 0) continue;
-      const index = (currentIndex + i + totalImages) % totalImages;
-      if (index >= 0 && index < totalImages) {
-        indexes.push(index);
+        await Promise.all(imagePromises);
+        setImagesLoaded(true);
+      } catch (error) {
+        console.error('Error preloading images:', error);
       }
-    }
-    return indexes;
-  };
+    };
+
+    preloadImages();
+  }, []);
 
   const handleImageChange = (direction: 'left' | 'right') => {
     const newIndex = direction === 'left'
@@ -66,6 +63,7 @@ export default function Home() {
     setCurrentImageIndex(newIndex);
   };
 
+  // 处理触摸事件
   const handleTouchStart = (e: TouchEvent) => {
     setTouchStart(e.touches[0].clientX);
   };
@@ -75,75 +73,93 @@ export default function Home() {
     const diff = touchStart - touchEnd;
 
     if (Math.abs(diff) > 50) {
-      if (diff > 0) {
-        handleImageChange('right');
-      } else {
-        handleImageChange('left');
-      }
+      handleImageChange(diff > 0 ? 'right' : 'left');
     }
+  };
+
+  // 预加载相邻图片
+  const preloadAdjacentImages = () => {
+    const prevIndex = (currentImageIndex - 1 + images.length) % images.length;
+    const nextIndex = (currentImageIndex + 1) % images.length;
+    const imagesToPreload = [
+      images[prevIndex],
+      images[currentImageIndex],
+      images[nextIndex],
+    ];
+
+    return imagesToPreload.map((src, index) => (
+      <Image
+        key={src}
+        src={src}
+        alt={`Preload image ${index}`}
+        width={1}
+        height={1}
+        priority={index === 1} // 当前图片优先加载
+        className="hidden"
+      />
+    ));
   };
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-white">
-      {/* 左右点击区域 - 仅在桌面端显示 */}
-      {!isMenuOpen && !isMobile && (
-        <div className="fixed inset-0 flex z-10">
+      {/* 左右点击区域 */}
+      {!isMenuOpen && (
+        <div 
+          className="fixed inset-0 flex z-10"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           <div 
-            className="w-1/2 h-full hover:cursor-left-arrow cursor-none"
-            onClick={() => handleImageChange('left')}
+            className={`w-1/2 h-full ${!isMobile ? 'hover:cursor-left-arrow cursor-none' : ''}`}
+            onClick={() => !isMobile && handleImageChange('left')}
           />
           <div 
-            className="w-1/2 h-full hover:cursor-right-arrow cursor-none"
-            onClick={() => handleImageChange('right')}
+            className={`w-1/2 h-full ${!isMobile ? 'hover:cursor-right-arrow cursor-none' : ''}`}
+            onClick={() => !isMobile && handleImageChange('right')}
           />
         </div>
       )}
 
       {/* 主图片区域 */}
-      <div 
-        className="absolute inset-0 flex items-center justify-center"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div className="absolute inset-0 flex items-center justify-center">
         <div 
-          className={`relative ${isMobile ? 'w-screen h-screen p-4' : 'w-[80vw] h-[80vh]'}
+          className={`relative w-[80vw] h-[80vh] md:w-[80vw] md:h-[80vh]
           ${isMenuOpen ? 'blur-md scale-105' : ''}`}
         >
           <Image
             src={images[currentImageIndex]}
             alt="Portfolio image"
             fill
-            sizes={isMobile ? "100vw" : "80vw"}
+            sizes="(max-width: 768px) 100vw, 80vw"
             priority
-            style={{ 
-              objectFit: 'contain',
-              padding: isMobile ? '1rem' : '0'
-            }}
+            quality={90}
+            style={{ objectFit: 'contain' }}
+            loading="eager"
           />
         </div>
 
-        {/* 修改后的预加载图片部分 */}
+        {/* 预加载图片 */}
         <div className="hidden">
-          {getPreloadIndexes(currentImageIndex, images.length).map((index) => (
-            <Image
-              key={`preload-${index}`}
-              src={images[index]}
-              alt={`Preload ${index}`}
-              width={1}
-              height={1}
-            />
-          ))}
+          {preloadAdjacentImages()}
         </div>
       </div>
 
+      {/* 加载指示器 */}
+      {!imagesLoaded && (
+        <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+          <div className="w-3 h-3 bg-black rounded-full animate-ping" />
+        </div>
+      )}
+
       {/* 菜单按钮 */}
       <button
-        className={`absolute left-1/2 -translate-x-1/2 rounded-full 
-          border border-black group transition-all duration-300 z-20
-          ${isMobile ? 'bottom-8 w-3 h-3 menu-button-mobile' : 'bottom-8 w-2.5 h-2.5'}`}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20
+          md:w-2.5 md:h-2.5 w-4 h-4 rounded-full 
+          border border-black group transition-all duration-300
+          menu-button-mobile"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
-        <span className="absolute inset-0 rounded-full bg-black opacity-100 transition-opacity duration-300" />
+        <span className="absolute inset-0 rounded-full bg-black opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </button>
 
       {/* 菜单内容 */}
@@ -156,31 +172,31 @@ export default function Home() {
           }
         }}
       >
-        <div className={`text-black text-center ${isMobile ? 'px-4' : ''} space-y-8`}>
-          <div className="space-y-2">
-            <p className="font-serif text-2xl tracking-wide">Photographer</p>
-            <p className="font-serif text-xl font-light tracking-widest">Luozhou</p>
-            <p className="text-sm tracking-wider uppercase">Based in Guangzhou</p>
+        <div className="text-black text-center space-y-6">
+          <div className="space-y-1">
+            <p className="text-sm">Photographer</p>
+            <p className="text-sm font-light">Luozhou</p>
+            <p className="text-sm">Based in Guangzhou</p>
           </div>
           
-          <div className="space-y-2">
-            <p className="text-sm tracking-wider uppercase">say hello</p>
+          <div className="space-y-1">
+            <p className="text-sm">say hello</p>
             <a 
               href="mailto:luozhou519@gmail.com"
-              className="text-sm font-light tracking-wide hover:underline transition-all duration-300"
+              className="text-sm inline-block hover:underline"
             >
               luozhou519@gmail.com
             </a>
           </div>
           
-          <div className="space-y-2">
-            <p className="text-sm tracking-wider uppercase">Social media</p>
-            <div className="flex justify-center items-center gap-8">
+          <div className="space-y-1">
+            <p className="text-sm">Social media</p>
+            <div className="flex justify-center items-center gap-6">
               <a 
                 href="https://www.instagram.com/luozhou02" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="text-sm font-light tracking-wide text-[#0095f6] hover:underline transition-all duration-300"
+                className="text-sm text-[#0095f6] hover:underline cursor-pointer"
               >
                 Instagram
               </a>
@@ -188,7 +204,7 @@ export default function Home() {
                 href="https://www.xiaohongshu.com/user/profile/6218d7000000000010009443" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="text-sm font-light tracking-wide text-[#fe2c55] hover:underline transition-all duration-300"
+                className="text-sm text-[#fe2c55] hover:underline cursor-pointer"
               >
                 Xiaohongshu
               </a>
